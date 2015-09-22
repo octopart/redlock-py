@@ -55,6 +55,13 @@ class Redlock(object):
     def lock_instance(self, server, resource, val, ttl):
         try:
             return server.set(resource, val, nx=True, px=ttl)
+        except redis.exceptions.ResponseError:
+            try:
+                if server.get(resource):
+                    return False
+                return server.setex(resource, ttl, val)
+            except:
+                return False
         except:
             return False
 
