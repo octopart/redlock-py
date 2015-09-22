@@ -56,6 +56,7 @@ class Redlock(object):
         try:
             return server.set(resource, val, nx=True, px=ttl)
         except redis.exceptions.ResponseError:
+            # try accommodating Redis <2.6
             try:
                 if server.get(resource):
                     return False
@@ -68,6 +69,13 @@ class Redlock(object):
     def unlock_instance(self, server, resource, val):
         try:
             server.eval(self.unlock_script, 1, resource, val)
+        except redis.exceptions.ResponseError:
+            # try accommodating Redis <2.6
+            try:
+                if server.get(resource) == val:
+                    server.delete(resource)
+            except:
+                pass
         except:
             pass
 
